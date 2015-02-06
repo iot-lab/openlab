@@ -106,6 +106,29 @@ void n25xxx_erase_sector(uint32_t address);
  */
 void n25xxx_bulk_erase();
 
+/** Read the flash status register */
+uint8_t n25xxx_read_status(void);
+
+/*
+ * Writes and/or reads a single byte.
+ * Use within a _n25xxx_cs_clear/_n25xxx_cs_set surrounded section
+ *
+ *     _n25xxx_cs_clear();
+ *     _n25xxx_rw_byte(XX);
+ *     _n25xxx_rw_byte(XX);
+ *     _n25xxx_rw_byte(XX);
+ *     _n25xxx_rw_byte(XX);
+ *     _n25xxx_cs_set();
+ *
+ *  Don't mix other n25xxx calls within the cs_clear/set section.
+ */
+uint8_t _n25xxx_rw_byte(uint8_t byte);
+
+/* Exposing CS functions */
+void _n25xxx_cs_clear(void);
+void _n25xxx_cs_set(void);
+
+
 /** @} */
 
 /** @} */

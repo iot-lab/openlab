@@ -151,7 +151,8 @@ void n25xxx_read(uint32_t address, uint8_t *buf, uint16_t len)
     csn_set();
 }
 
-static uint8_t n25xxx_read_status()
+/*static */
+uint8_t n25xxx_read_status()
 {
     uint8_t t;
 
@@ -294,4 +295,22 @@ void n25xxx_bulk_erase()
     {
         ;
     }
+}
+
+void _n25xxx_cs_clear()
+{
+	// Start the SPI transfer
+	csn_clear();
+}
+
+void _n25xxx_cs_set()
+{
+	// End the SPI transfer
+	csn_set();
+}
+
+uint8_t _n25xxx_rw_byte(uint8_t byte)
+{
+	// Send instruction
+	return spi_transfer_single(flash.spi, byte);
 }
