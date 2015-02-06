@@ -37,6 +37,19 @@
 
 #include <stdint.h>
 
+uint8_t n25xxx_read_status(void);
+
+/*
+ * Writes and/or reads a single byte
+ */
+uint8_t n25xxx_rw_byte(uint8_t byte);
+
+/*
+ * exposing CS functions
+ */
+void n25xxx_cs_clear(void);
+void n25xxx_cs_set(void);
+
 /** Read the flash chip ID
  * Reads the flash chip ID which contains the manufacturer ID, the device ID and an unique ID
  * \param[out] id The content of the ID. The ID is 20-byte long, but the length parameter allows
