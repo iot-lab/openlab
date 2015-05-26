@@ -12,7 +12,7 @@
 #include "lps331ap.h"
 #include "isl29020.h"
 #endif
-#include "mac_csma.h"
+//#include "mac_csma.h"
 #include "phy.h"
 
 // choose channel in [11-26]
@@ -75,18 +75,18 @@ static void send_packet()
     snprintf(packet, sizeof(packet), "Hello World!: %u", num++);
     length = 1 + strlen(packet);
 
-    ret = mac_csma_data_send(ADDR_BROADCAST, (uint8_t *)packet, length);
-
-    printf("\nradio > ");
-    if (ret != 0)
+    //ret = mac_csma_data_send(ADDR_BROADCAST, (uint8_t *)packet, length);
+while (1)
+    //printf("\nradio > ");
+   // if (ret != 0)
         printf("Packet sent\n");
-    else
-        printf("Packet sent failed\n");
+    //else
+        //printf("Packet sent failed\n");
 }
 
 static void send_big_packet()
 {
-    uint16_t ret;
+   // uint16_t ret;
     static uint8_t num = 0;
 
     static char packet[PHY_MAX_TX_LENGTH - 4];  // 4 for mac layer
@@ -96,18 +96,18 @@ static void send_big_packet()
     snprintf(packet, sizeof(packet), "Big Hello World!: %u %s",num++, pluspack);
     length = 1 + strlen(packet);
 
-    ret = mac_csma_data_send(ADDR_BROADCAST, (uint8_t *)packet, length);
-
-    printf("\nradio > ");
-    if (ret != 0)
+    //ret = mac_csma_data_send(ADDR_BROADCAST, (uint8_t *)packet, length);
+while (1)
+    //printf("\nradio > ");
+    //if (ret != 0)
         printf("Big packet sent\n");
-    else
-        printf("Big packet sent failed\n");
+    //else
+        //printf("Big packet sent failed\n");
 }
 
 
 /* Reception of a radio message */
-void mac_csma_data_received(uint16_t src_addr,
+//void mac_csma_data_received(uint16_t src_addr,
         const uint8_t *data, uint8_t length, int8_t rssi, uint8_t lqi)
 {
     // disable help message after receiving one packet
