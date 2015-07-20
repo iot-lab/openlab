@@ -38,7 +38,7 @@ static void handle_cmd(handler_arg_t arg);
  */
 static void print_usage()
 {
-    printf("\n\nTopology setup program\n");
+    printf("\n\nTopology setup program 2\n");
     printf("Type command\n");
     printf("\th:\tprint this help\n");
     printf("\tt:\tinitialize neighbourhood HELLO\n");
@@ -49,6 +49,7 @@ static void hardware_init()
     // Openlab platform init
     platform_init();
     event_init();
+    soft_timer_init();
 
     // Initialize serial communication interface (UART)
     uart_set_rx_handler(uart_print, char_rx, NULL);
@@ -60,7 +61,8 @@ static void hardware_init()
 
 static void begin_lookup()
 {
-    lookup_neighbours(15, PHY_POWER_m17dBm);
+    printf("Beginning lookup!\n");
+    lookup_neighbours(15, PHY_POWER_0dBm);
 }
 
 static void handle_cmd(handler_arg_t arg)
@@ -83,6 +85,7 @@ int main()
 {
     hardware_init();
     platform_run();
+
     return 0;
 }
 
