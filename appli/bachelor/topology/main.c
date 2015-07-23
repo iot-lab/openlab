@@ -19,20 +19,6 @@
 static void char_rx(handler_arg_t arg, uint8_t c);
 static void handle_cmd(handler_arg_t arg);
 
-
-/* Reception of a radio message */
-/*void mac_csma_data_received(uint16_t src_addr,
-        const uint8_t *data, uint8_t length, int8_t rssi, uint8_t lqi)
-{
-    // disable help message after receiving one packet
-    print_help = 0;
-
-    printf("\nradio > ");
-    printf("Got packet from %x. Len: %u Rssi: %d: '%s'\n",
-            src_addr, length, rssi, (const char*)data);
-    handle_cmd((handler_arg_t) '\n');
-}*/
-
 /*
  * HELP
  */
@@ -61,7 +47,7 @@ static void hardware_init()
 
 static void begin_lookup()
 {
-    printf("Beginning lookup!\n");
+    //printf("Beginning lookup!\n");
     lookup_neighbours(15, PHY_POWER_0dBm);
 }
 
@@ -71,11 +57,10 @@ static void handle_cmd(handler_arg_t arg)
         case 't':
             begin_lookup();
             break;
-        case '\n':
-            printf("\ncmd > ");
+        case 'l':
+            print_neighbours();
             break;
         case 'h':
-        default:
             print_usage();
             break;
     }
@@ -92,7 +77,9 @@ int main()
 
 /* Reception of a char on UART and store it in 'cmd' */
 static void char_rx(handler_arg_t arg, uint8_t c) {
-    // disable help message after receiving char
+    // This is an Interupt service routine
+    // => we should return as soon as possible!
+    // Thus we push this as an event into the event queue
     event_post_from_isr(EVENT_QUEUE_APPLI, handle_cmd,
             (handler_arg_t)(uint32_t) c);
 }
