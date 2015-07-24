@@ -4,11 +4,14 @@
 #include "mac_csma.h"
 #include "phy.h"
 #include "event.h"
+#include "soft_timer.h"
 
 #include "feedback.h"
 
 // Type of the broadcast HELLO Message
 #define MSG_HELLO 	  1
+// The add reply
+#define MSG_HELLO_ACK	  2
 
 #define ADDR_BROADCAST 0xFFFF
 
@@ -45,6 +48,11 @@ struct msg_send
     uint8_t pkt[MAXPKGSIZE];
     size_t length;
 };
+
+/*struct hello_ack {
+	uint8_t type;
+	uint16_t 
+};*/
 
 
 static void do_send(handler_arg_t arg)
@@ -127,6 +135,10 @@ static void handleReceivedHello(uint16_t src_addr, int8_t rssi) {
 				//printf("%04x: ADD: %d\n", iotlab_uid(), src_addr);
 				neighbours[i] = src_addr;
 				neighboursCount++;
+
+				// Send acknowledgement
+				uint8_t pkg = MSG_HELLO_ACK;
+				send(src_addr, &pkg, 1);
 				break;
 			}
 
@@ -137,6 +149,21 @@ static void handleReceivedHello(uint16_t src_addr, int8_t rssi) {
 		}
 	} else {
 		MESSAGE("REJECT;%04x;%d\n", src_addr, rssi);
+	}
+}
+
+static void handleHelloAck(uint16_t src_addr, int8_t rssi) {
+	int i = 0;
+	for (i = 0; i < MAXNEIGHBOURS; ++i) {
+		if (neighbours[i] == src_addr) {
+			return;
+		}
+		if (neighbours[i] == 0) {
+			MESSAGE("ACK;%04x;\n", src_addr);
+			neighbours[i] = src_addr;
+			neighboursCount++;
+			return;
+		}
 	}
 }
 
@@ -153,6 +180,9 @@ void mac_csma_data_received(uint16_t src_addr, const uint8_t *data,
 	switch (type) {
 		case (MSG_HELLO):
 			handleReceivedHello(src_addr, rssi);
+			break;
+		case (MSG_HELLO_ACK):
+			handleHelloAck(src_addr, rssi);
 			break;
 		default:
 			break;
