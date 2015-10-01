@@ -6,8 +6,10 @@
 import os
 import sys
 import time
-import serial_aggregator
-from serial_aggregator import NodeAggregator
+
+from iotlabaggregator.serial import SerialAggregator
+import iotlabaggregator.common
+import parse_json
 
 FIRMWARE_PATH = "node_radio_characterization.elf"
 
@@ -15,7 +17,7 @@ class RadioCharac(object):
     """ Radio Characterization """
     def __init__(self, nodes_list):
         self.state = {}
-        self.nodes = NodeAggregator(nodes_list)
+        self.nodes = SerialAggregator(nodes_list)
         self.current_sender_node = None
 
     def start(self):
@@ -153,8 +155,8 @@ def simple_results_summary(result, human_readable=False):
 def main(argv):
     """ Run a characterization script on all nodes from an experiment """
 
-    json_dict = serial_aggregator.extract_json(sys.stdin.read())
-    nodes_list = serial_aggregator.extract_nodes(json_dict, os.uname()[1])
+    json_dict = parse_json.extract_json(sys.stdin.read())
+    nodes_list = iotlabaggregator.common.extract_nodes(json_dict, os.uname()[1])
 
     rad_charac = RadioCharac(nodes_list)
 
