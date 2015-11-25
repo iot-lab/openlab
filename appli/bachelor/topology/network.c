@@ -1,6 +1,6 @@
 #include "network.h"
 #include <string.h>
-#include <stddef.h>
+
 #include "mac_csma.h"
 #include "phy.h"
 #include "event.h"
@@ -20,7 +20,7 @@
 // The maximum package size is available in
 // the constant PHY_MAX_TX_LENGTH.
 // This constant does not take the CSMA Mac Layer
-// into account thus we subtract that size it adds to a package
+// into account thus we subtract that size, it adds to a package
 #define MAXPKGSIZE PHY_MAX_TX_LENGTH - 4
 
 // Define an upper limit to the number of neighbours
@@ -41,6 +41,14 @@
 uint16_t neighbours[MAXNEIGHBOURS] = {0};
 uint32_t neighboursCount = 0;
 
+uint32_t number_of_neighbours() {
+	return neighboursCount;
+}
+
+uint16_t* get_neighbours() {
+	return neighbours;
+}
+
 struct msg_send
 {
     int try;
@@ -49,12 +57,10 @@ struct msg_send
     size_t length;
 };
 
-/*struct hello_ack {
-	uint8_t type;
-	uint16_t 
-};*/
-
-
+/**
+ * Method tries to send package NUM_TRIES times.
+ * @param arg msg_send struct with data
+ */
 static void do_send(handler_arg_t arg)
 {
     struct msg_send *send_cfg = (struct msg_send *)arg;
@@ -82,6 +88,18 @@ static void send(uint16_t addr, void *packet, size_t length)
     memcpy(&send_cfg.pkt, packet, length);
 
     event_post(EVENT_QUEUE_APPLI, do_send, &send_cfg);
+}
+
+void send_package(int peer_id, void *packet, size_t length)
+{
+	// Do not allow to send to unexisting peer!
+	if (peer_id >= neighboursCount) {
+		return;
+	}
+
+	uint16_t address = neighbours[peer_id];
+
+	send(address, packet, length);
 }
 
 void lookup_neighbours(uint32_t channel, uint32_t transmission_power) {

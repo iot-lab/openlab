@@ -12,6 +12,7 @@
 #include "phy.h"
 
 #include "network.h"
+#include "gossiping.h"
 
 #define ADDR_BROADCAST 0xFFFF
 
@@ -60,6 +61,8 @@ static void handle_cmd(handler_arg_t arg)
         case 'l':
             print_neighbours();
             break;
+        case 'g':
+            start_gossiping();
         case 'h':
             print_usage();
             break;
