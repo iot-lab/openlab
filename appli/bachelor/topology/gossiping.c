@@ -11,9 +11,6 @@
 
 #include "random.h"
 
-#define ACTIVE_THREAD 1
-#define PASSIVE_THREAD 0
-
 #define CACHE_SIZE 512
 
 //uint8_t state = 0;
@@ -23,7 +20,7 @@
 struct _cache
 {
 	// The transferred value
-	unsigned int value;						// 4 bytes
+	uint32_t value;						// 4 bytes
 	// This will store the peer
 	// that has sent the value to this node
 	uint16_t sender;						// 2 bytes
@@ -32,6 +29,16 @@ struct _cache
 } __attribute__ ((packed));
 
 typedef struct _cache data_cache;
+
+struct _gossip_message
+{
+	uint8_t type;
+	uint32_t value;
+	uint16_t sender;
+	uint16_t source;
+} __attribute__ ((packed));
+
+typedef struct _gossip_message gossip_message;
 
 typedef struct _state
 {
@@ -80,12 +87,25 @@ void start_gossiping() {
 	cache.source = me;
 }
 
+void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
+	static gossip_message msg;
+	msg.type = type;
+
+	msg.value = cp->value;
+	msg.sender = iotlab_uid();
+	msg.source = cp->source;
+
+	send_package_uuid(addr, &msg, sizeof(gossip_message));
+}
+
 /**
  * This method takes care of the actions of an active thread
  * This is issued every dt seconds and makes a data dissemination
  * to one randomly chosen peer.
  */
 void active_thread() {
+	//static gossip_message msg;
+	//msg.type = MSG_PUSH;
 	// p <- RandomPeer()
 	unsigned int id = pickPeer(number_of_neighbours());
 
@@ -94,22 +114,29 @@ void active_thread() {
 	// as there is always just one cache object that can be
 	// disseminated
 	// cache_section sigma = pick_cache_selection();
+	
+	//msg.value = cache.value;
+	//msg.sender = iotlab_uid();
+	//msg.source = cache.source;
 
 	// send sigma to id
 	// therefore translate begin end into pointer and length
 	//send_package(id, cache + sigma.begin, sigma.end - sigma.begin + 1);
-	send_package(id, &cache, sizeof(data_cache));
+	//send_package(id, &msg, sizeof(gossip_message));
+
+
+	send_cache(uuid_of_neighbour(id), MSG_PUSH, &cache);
 
 	// wait for receive
-	block_node_for_response(id);
+	//block_node_for_response(id);
 }
 
-void update(uint16_t sender, data_cache *received_cache) {
-	if (received_cache->value > cache.value) {
+void update(uint16_t sender, gossip_message *received_message) {
+	if (received_message->value > cache.value) {
 		// We received a new maximum, so refresh your cache!
-		cache.value = received_cache->value;
+		cache.value = received_message->value;
 		cache.sender = sender;
-		cache.source = received_cache->source;
+		cache.source = received_message->source;
 	}
 }
 
@@ -118,14 +145,11 @@ void update(uint16_t sender, data_cache *received_cache) {
  * if a message was received.
  */
 void passive_thread(uint16_t src_addr, uint8_t *data, uint8_t length) {
-	data_cache *received_cache = (data_cache *)data;
+	gossip_message *received_message = (gossip_message *)data;
 
-	if (state.blocked && state.blocked_for == src_addr) {
-		// Response for active thread execution
-		unblock_node();
-		update(src_addr, received_cache);
-	} else if (!state.blocked) {
-		send_package_uuid(src_addr, &cache, sizeof(data_cache));
-		update(src_addr, received_cache);
+	if (received_message->type == MSG_PUSH) {
+		send_cache(src_addr, MSG_PULL, &cache);
 	}
+
+	update(src_addr, received_message);
 }
