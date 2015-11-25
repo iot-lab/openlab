@@ -16,11 +16,11 @@
 
 #define CACHE_SIZE 512
 
-uint8_t state = 0;
+//uint8_t state = 0;
 
 //char cache[CACHE_SIZE];
 
-typedef struct _cache
+struct _cache
 {
 	// The transferred value
 	unsigned int value;						// 4 bytes
@@ -29,15 +29,19 @@ typedef struct _cache
 	uint16_t sender;						// 2 bytes
 	// This is the issuer of this value
 	uint16_t source;						// 2 bytes
-} data_cache;
+} __attribute__ ((packed));
+
+typedef struct _cache data_cache;
+
+typedef struct _state
+{
+	uint8_t thread;
+	uint8_t blocked;
+	uint16_t blocked_for;
+} data_state;
 
 data_cache cache;
-
-typedef struct
-{
-	int begin;
-	int end;
-} cache_section;
+data_state state = { 0, 0, 0 };
 
 static unsigned int pickPeer(uint32_t numberOfPeers) {
 	return random_rand32() % numberOfPeers;
@@ -48,17 +52,24 @@ static unsigned int pickPeer(uint32_t numberOfPeers) {
  * It ensures that begin <= end
  * @return [description]
  */
-cache_section pick_cache_selection() {
+/*cache_section pick_cache_selection() {
 	cache_section a = {0, 0};
 
 	return a;
-}
+}*/
 
 /*
  * This blocks the node until a response of peerId arrives
  */
 void block_node_for_response(unsigned int peerId) {
-	state = peerId;
+	state.blocked_for = uuid_of_neighbour(peerId);
+	state.blocked = 1;
+	state.thread = PASSIVE_THREAD;
+}
+
+void unblock_node() {
+	state.blocked = 0;
+	state.blocked_for = 0;
 }
 
 void start_gossiping() {
@@ -91,4 +102,30 @@ void active_thread() {
 
 	// wait for receive
 	block_node_for_response(id);
+}
+
+void update(uint16_t sender, data_cache *received_cache) {
+	if (received_cache->value > cache.value) {
+		// We received a new maximum, so refresh your cache!
+		cache.value = received_cache->value;
+		cache.sender = sender;
+		cache.source = received_cache->source;
+	}
+}
+
+/**
+ * This executes the step listed for the "passive thread" and is only invoked,
+ * if a message was received.
+ */
+void passive_thread(uint16_t src_addr, uint8_t *data, uint8_t length) {
+	data_cache *received_cache = (data_cache *)data;
+
+	if (state.blocked && state.blocked_for == src_addr) {
+		// Response for active thread execution
+		unblock_node();
+		update(src_addr, received_cache);
+	} else if (!state.blocked) {
+		send_package_uuid(src_addr, &cache, sizeof(data_cache));
+		update(src_addr, received_cache);
+	}
 }

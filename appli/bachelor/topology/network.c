@@ -49,6 +49,10 @@ uint16_t* get_neighbours() {
 	return neighbours;
 }
 
+uint16_t uuid_of_neighbour(unsigned int index) {
+	return neighbours[index];
+}
+
 struct msg_send
 {
     int try;
@@ -100,6 +104,10 @@ void send_package(int peer_id, void *packet, size_t length)
 	uint16_t address = neighbours[peer_id];
 
 	send(address, packet, length);
+}
+
+void send_package_uuid(uint16_t uuid, void *packet, size_t length) {
+	send(uuid, packet, length);
 }
 
 void lookup_neighbours(uint32_t channel, uint32_t transmission_power) {

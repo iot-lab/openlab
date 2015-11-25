@@ -28,11 +28,21 @@ uint32_t number_of_neighbours();
 uint16_t* get_neighbours();
 
 /**
+ * This function returns for a given peer id (i.e. index in local neighbours list)
+ * the UUID that is used to identify a node in the network layer
+ * @param  index [description]
+ * @return       [description]
+ */
+uint16_t uuid_of_neighbour(unsigned int index);
+
+/**
  * Send a package to a peer
  * @param peer_id The id of the peer in the neighbours list
  * @param packet  The package itself
  * @param length  The length of the package
  */
 void send_package(int peer_id, void *packet, size_t length);
+
+void send_package_uuid(uint16_t uuid, void *packet, size_t length);
 
 #endif
