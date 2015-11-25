@@ -104,8 +104,6 @@ void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
  * to one randomly chosen peer.
  */
 void active_thread() {
-	//static gossip_message msg;
-	//msg.type = MSG_PUSH;
 	// p <- RandomPeer()
 	unsigned int id = pickPeer(number_of_neighbours());
 
@@ -114,15 +112,10 @@ void active_thread() {
 	// as there is always just one cache object that can be
 	// disseminated
 	// cache_section sigma = pick_cache_selection();
-	
-	//msg.value = cache.value;
-	//msg.sender = iotlab_uid();
-	//msg.source = cache.source;
 
 	// send sigma to id
 	// therefore translate begin end into pointer and length
 	//send_package(id, cache + sigma.begin, sigma.end - sigma.begin + 1);
-	//send_package(id, &msg, sizeof(gossip_message));
 
 
 	send_cache(uuid_of_neighbour(id), MSG_PUSH, &cache);
