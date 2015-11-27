@@ -65,26 +65,24 @@ static unsigned int pickPeer(uint32_t numberOfPeers) {
 	return a;
 }*/
 
-/*
- * This blocks the node until a response of peerId arrives
+/**
+ * Initialize this node for gossiping
+ * i.e. put the inital values into the gossip-cache
  */
-void block_node_for_response(unsigned int peerId) {
-	state.blocked_for = uuid_of_neighbour(peerId);
-	state.blocked = 1;
-	state.thread = PASSIVE_THREAD;
-}
-
-void unblock_node() {
-	state.blocked = 0;
-	state.blocked_for = 0;
-}
-
 void start_gossiping() {
 	uint16_t me = iotlab_uid();
 	// Prefill cache
 	cache.value = 0;
 	cache.sender = me;
 	cache.source = me;
+}
+
+/**
+ * This will make the node infected with a new value
+ * @param val [description]
+ */
+void inject_value(uint32_t val) {
+	cache.value = val;
 }
 
 void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
@@ -140,6 +138,7 @@ void update(uint16_t sender, gossip_message *received_message) {
 void passive_thread(uint16_t src_addr, uint8_t *data, uint8_t length) {
 	gossip_message *received_message = (gossip_message *)data;
 
+	// On PUSH-Message answer with PULL - Message
 	if (received_message->type == MSG_PUSH) {
 		send_cache(src_addr, MSG_PULL, &cache);
 	}

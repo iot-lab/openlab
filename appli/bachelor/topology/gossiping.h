@@ -8,5 +8,6 @@
 #define PASSIVE_THREAD 0
 
 void start_gossiping();
+void active_thread();
 
 #endif
