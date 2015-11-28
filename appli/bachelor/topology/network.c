@@ -194,7 +194,7 @@ static void handleHelloAck(uint16_t src_addr, int8_t rssi) {
 }
 
 // Message reception handler
-void mac_csma_data_received(uint16_t src_addr, const uint8_t *data,
+void network_csma_data_received(uint16_t src_addr, const uint8_t *data,
 				     uint8_t length, int8_t rssi, uint8_t lqi) {
 	// The first byte of the received message is always the message type.
 	// Thus fetch it and look at it!

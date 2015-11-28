@@ -4,12 +4,11 @@
  * a single natural. This will be the maximum.
  */
 #include "gossiping.h"
-#include "network.h"
-#include "feedback.h"
 
 #include "iotlab_uid.h"
 
 #include "random.h"
+#include <string.h>
 
 #define CACHE_SIZE 512
 
@@ -135,13 +134,26 @@ void update(uint16_t sender, gossip_message *received_message) {
  * This executes the step listed for the "passive thread" and is only invoked,
  * if a message was received.
  */
-void passive_thread(uint16_t src_addr, uint8_t *data, uint8_t length) {
-	gossip_message *received_message = (gossip_message *)data;
+void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
+	gossip_message received_message;
+
+
+	memcpy(&received_message, data, length);
+
+	//gossip_message *received_message = (gossip_message *)data;
 
 	// On PUSH-Message answer with PULL - Message
-	if (received_message->type == MSG_PUSH) {
+	if (received_message.type == MSG_PUSH) {
 		send_cache(src_addr, MSG_PULL, &cache);
 	}
 
-	update(src_addr, received_message);
+	update(src_addr, &received_message);
+}
+
+void gossip_csma_data_received(uint16_t src_addr, const uint8_t *data,
+				     uint8_t length, int8_t rssi, uint8_t lqi) {
+	//uint8_t *p = (uint8_t *)data;
+	if (length == sizeof(gossip_message)) {
+		passive_thread(src_addr, data, length);
+	}
 }

@@ -45,4 +45,6 @@ void send_package(int peer_id, void *packet, size_t length);
 
 void send_package_uuid(uint16_t uuid, void *packet, size_t length);
 
+void network_csma_data_received(uint16_t src_addr, const uint8_t *data, uint8_t length, int8_t rssi, uint8_t lqi);
+
 #endif

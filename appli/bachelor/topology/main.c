@@ -23,7 +23,7 @@ static soft_timer_t alarm[1];
 static void char_rx(handler_arg_t arg, uint8_t c);
 static void handle_cmd(handler_arg_t arg);
 
-static uint8_t gossipRunning = 0;
+static uint8_t gossip_running = 0;
 
 /*
  * HELP
@@ -63,13 +63,13 @@ static void hardware_init()
 
 static void switch_to_gossiping()
 {
-    if (!gossipRunning) {
+    if (!gossip_running) {
         start_gossiping();
 
         // Initialize the active thread timer
         soft_timer_start(alarm, soft_timer_s_to_ticks(ACTIVE_INTERVAL), 1);
 
-        gossipRunning = 1;
+        gossip_running = 1;
 
     }
 }
@@ -113,4 +113,14 @@ static void char_rx(handler_arg_t arg, uint8_t c) {
     // Thus we push this as an event into the event queue
     event_post_from_isr(EVENT_QUEUE_APPLI, handle_cmd,
             (handler_arg_t)(uint32_t) c);
+}
+
+void mac_csma_data_received(uint16_t src_addr, const uint8_t *data,
+                     uint8_t length, int8_t rssi, uint8_t lqi) {
+
+    if (!gossip_running) {
+        network_csma_data_received(src_addr, data, length, rssi, lqi);
+    } else {
+        gossip_csma_data_received(src_addr, data, length, rssi, lqi);
+    }
 }
