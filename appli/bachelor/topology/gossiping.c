@@ -5,6 +5,8 @@
  */
 #include "gossiping.h"
 
+#include "soft_timer.h"
+
 #include "iotlab_uid.h"
 
 #include "random.h"
@@ -39,15 +41,15 @@ struct _gossip_message
 
 typedef struct _gossip_message gossip_message;
 
-typedef struct _state
+/*typedef struct _state
 {
 	uint8_t thread;
 	uint8_t blocked;
 	uint16_t blocked_for;
-} data_state;
+} data_state;*/
 
 data_cache cache;
-data_state state = { 0, 0, 0 };
+//data_state state = { 0, 0, 0 };
 
 static unsigned int pickPeer(uint32_t numberOfPeers) {
 	return random_rand32() % numberOfPeers;
@@ -74,6 +76,8 @@ void start_gossiping() {
 	cache.value = 0;
 	cache.sender = me;
 	cache.source = me;
+
+	MESSAGE("INIT;\n");
 }
 
 /**
@@ -82,6 +86,10 @@ void start_gossiping() {
  */
 void inject_value(uint32_t val) {
 	cache.value = val;
+	cache.sender = iotlab_uid();
+	cache.source = iotlab_uid();
+
+	MESSAGE("INJECT;%u;\n", val);
 }
 
 void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
@@ -114,7 +122,7 @@ void active_thread() {
 	// therefore translate begin end into pointer and length
 	//send_package(id, cache + sigma.begin, sigma.end - sigma.begin + 1);
 
-
+	MESSAGE("GOSSIP;%04x;%u;\n", uuid_of_neighbour(id), cache.value);
 	send_cache(uuid_of_neighbour(id), MSG_PUSH, &cache);
 
 	// wait for receive
@@ -127,6 +135,7 @@ void update(uint16_t sender, gossip_message *received_message) {
 		cache.value = received_message->value;
 		cache.sender = sender;
 		cache.source = received_message->source;
+		MESSAGE("NEW-CACHE;%04x;%u;\n", sender, cache.value);
 	}
 }
 
@@ -137,7 +146,7 @@ void update(uint16_t sender, gossip_message *received_message) {
 void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
 	gossip_message received_message;
 
-
+	MESSAGE("RECV;%04x;%u;\n", src_addr, length);
 	memcpy(&received_message, data, length);
 
 	//gossip_message *received_message = (gossip_message *)data;

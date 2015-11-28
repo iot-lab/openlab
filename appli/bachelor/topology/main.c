@@ -25,6 +25,9 @@ static void handle_cmd(handler_arg_t arg);
 
 static uint8_t gossip_running = 0;
 
+uint8_t reading_number = 0;
+uint32_t num_cache;
+
 /*
  * HELP
  */
@@ -82,18 +85,34 @@ static void begin_lookup()
 
 static void handle_cmd(handler_arg_t arg)
 {
-    switch ((char) (uint32_t) arg) {
-        case 't':
-            begin_lookup();
-            break;
-        case 'l':
-            print_neighbours();
-            break;
-        case 'g':
-            switch_to_gossiping();
-        case 'h':
-            print_usage();
-            break;
+    char read = (char) (uint32_t) arg;
+
+    if (reading_number) {
+        if (read >= '0' && read <= '9') {
+            num_cache = num_cache*10 + (read - '0');
+        } else {
+            reading_number = 0;
+            inject_value(num_cache);
+            num_cache = 0;
+        }
+    } else {
+        switch (read) {
+            case 't':               // Start search for neighbours
+                begin_lookup();
+                break;
+            case 'l':               // List all neighbours
+                print_neighbours();
+                break;
+            case 'g':               // Start Gossiping
+                switch_to_gossiping();
+                break;
+            case 'i':               // Read cache value from UART
+                reading_number = 1;
+                break;
+            case 'h':               // Print node help
+                print_usage();
+                break;
+        }
     }
 }
 

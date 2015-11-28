@@ -72,10 +72,11 @@ static void do_send(handler_arg_t arg)
 
     ret = mac_csma_data_send(send_cfg->addr, send_cfg->pkt, send_cfg->length);
     if (ret != 0) {
-        MESSAGE("Sent to %04x try %u\n", send_cfg->addr, send_cfg->try);
+        MESSAGE("SENT;%04x;%u;\n", send_cfg->addr, send_cfg->try);
     } else {
-        ERROR("Send to %04x failed, try %u. Retrying\n",
-                send_cfg->addr, send_cfg->try);
+    	ERROR("SEND-ERR;%04x;%u;\n", send_cfg->addr, send_cfg->try);
+        // ERROR("Send to %04x failed, try %u. Retrying\n",
+        //        send_cfg->addr, send_cfg->try);
         if (send_cfg->try++ < NUM_TRIES)
             event_post(EVENT_QUEUE_APPLI, do_send, arg);
         //soft_timer_ms_to_ticks(20);
@@ -174,7 +175,7 @@ static void handleReceivedHello(uint16_t src_addr, int8_t rssi) {
 			}
 		}
 	} else {
-		MESSAGE("REJECT;%04x;%d\n", src_addr, rssi);
+		MESSAGE("REJECT;%04x;%d;\n", src_addr, rssi);
 	}
 }
 
