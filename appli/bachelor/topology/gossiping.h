@@ -10,6 +10,8 @@
 #define ACTIVE_THREAD 1
 #define PASSIVE_THREAD 0
 
+#define GOSSIP_INTERVAL 5
+
 void start_gossiping();
 void active_thread();
 void inject_value(uint32_t val);

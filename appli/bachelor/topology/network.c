@@ -36,6 +36,8 @@
 // How often the algorithm will try to spread the information
 #define NUM_TRIES 5
 
+//static soft_timer_t topology_alarm[1];
+
 // define the array of all neighbours and initialize it with a 0 first-element
 // to allocate the memory
 uint16_t neighbours[MAXNEIGHBOURS] = {0};
@@ -52,6 +54,9 @@ uint16_t* get_neighbours() {
 uint16_t uuid_of_neighbour(unsigned int index) {
 	return neighbours[index];
 }
+
+//uint8_t helo_counter = 0;
+
 
 struct msg_send
 {
@@ -111,6 +116,16 @@ void send_package_uuid(uint16_t uuid, void *packet, size_t length) {
 	send(uuid, packet, length);
 }
 
+/*void send_hello(handler_arg_t arg) {
+	if (helo_counter < NUM_TRIES) {
+		helo_counter++;
+		uint8_t pkg = MSG_HELLO;
+		send(ADDR_BROADCAST, &pkg, 1);
+	} else {
+		soft_timer_stop(topology_alarm);
+	}
+}*/
+
 void lookup_neighbours(uint32_t channel, uint32_t transmission_power) {
 	// Remove any existing neighbours
 	memset(neighbours, 0, sizeof(neighbours));
@@ -126,12 +141,16 @@ void lookup_neighbours(uint32_t channel, uint32_t transmission_power) {
 	// This assumes a symmetric wireless link.
 	// i.e. that if (u,v) \in E => (v,u) \in E
 
-	// 1.
-	// Prepare message
 	uint8_t pkg = MSG_HELLO;
-	//printf("Send HELLO message!\n");
-	//mac_csma_data_send(ADDR_BROADCAST, &pkg, 1);
 	send(ADDR_BROADCAST, &pkg, 1);
+
+	// We want to try finding our neighbours more than once
+    //soft_timer_set_handler(topology_alarm, send_hello, (handler_arg_t) 0);
+
+    // Initialize the active thread timer
+    //soft_timer_start(topology_alarm, soft_timer_s_to_ticks(2), 1);
+
+	//send_hello((handler_arg_t)0);
 }
 
 // This method prints all currently known neighbours
@@ -183,6 +202,7 @@ static void handleHelloAck(uint16_t src_addr, int8_t rssi) {
 	int i = 0;
 	for (i = 0; i < MAXNEIGHBOURS; ++i) {
 		if (neighbours[i] == src_addr) {
+			MESSAGE("KNOWN;%04x;⅞n", src_addr);
 			return;
 		}
 		if (neighbours[i] == 0) {

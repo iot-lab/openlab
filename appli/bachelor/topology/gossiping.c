@@ -14,6 +14,8 @@
 
 #define CACHE_SIZE 512
 
+static soft_timer_t alarm[1];
+
 //uint8_t state = 0;
 
 //char cache[CACHE_SIZE];
@@ -41,18 +43,17 @@ struct _gossip_message
 
 typedef struct _gossip_message gossip_message;
 
-/*typedef struct _state
-{
-	uint8_t thread;
-	uint8_t blocked;
-	uint16_t blocked_for;
-} data_state;*/
-
 data_cache cache;
 //data_state state = { 0, 0, 0 };
 
 static unsigned int pickPeer(uint32_t numberOfPeers) {
 	return random_rand32() % numberOfPeers;
+}
+
+static void handle_timer(handler_arg_t arg)
+{
+    // The thread is now active thus execute the active_thread method
+    active_thread();
 }
 
 /**
@@ -77,7 +78,14 @@ void start_gossiping() {
 	cache.sender = me;
 	cache.source = me;
 
-	MESSAGE("INIT;\n");
+	// The gossip algorithm states, that a node issues a gossip at a periodic interval
+    // that is shared across all nodes thus we are initializing a timer here
+    soft_timer_set_handler(alarm, handle_timer, (handler_arg_t) 0);
+
+    // Initialize the active thread timer
+    soft_timer_start(alarm, soft_timer_s_to_ticks(GOSSIP_INTERVAL), 1);
+
+	MESSAGE("INIT;%d;%d;\n", sizeof(data_cache), sizeof(gossip_message));
 }
 
 /**
@@ -90,6 +98,7 @@ void inject_value(uint32_t val) {
 	cache.source = iotlab_uid();
 
 	MESSAGE("INJECT;%u;\n", val);
+	
 }
 
 void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
@@ -109,6 +118,10 @@ void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
  * to one randomly chosen peer.
  */
 void active_thread() {
+	// if the thread has no neighbpurs, we cannot pick one...
+	if (number_of_neighbours() == 0) {
+		return;
+	}
 	// p <- RandomPeer()
 	unsigned int id = pickPeer(number_of_neighbours());
 
@@ -146,10 +159,9 @@ void update(uint16_t sender, gossip_message *received_message) {
 void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
 	gossip_message received_message;
 
-	MESSAGE("RECV;%04x;%u;\n", src_addr, length);
 	memcpy(&received_message, data, length);
 
-	//gossip_message *received_message = (gossip_message *)data;
+	MESSAGE("RECV;%04x;%u;%u;%u;\n", src_addr, length, received_message.type, received_message.value);
 
 	// On PUSH-Message answer with PULL - Message
 	if (received_message.type == MSG_PUSH) {
