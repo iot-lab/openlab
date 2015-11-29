@@ -6,6 +6,8 @@
 #include "event.h"
 #include "soft_timer.h"
 
+#include "iotlab_uid_num_hashtable.h"
+
 #include "feedback.h"
 
 // Type of the broadcast HELLO Message
@@ -126,13 +128,19 @@ void send_package_uuid(uint16_t uuid, void *packet, size_t length) {
 	}
 }*/
 
-void lookup_neighbours(uint32_t channel, uint32_t transmission_power) {
+void reset_neighbours(uint32_t channel, uint32_t transmission_power) {
 	// Remove any existing neighbours
 	memset(neighbours, 0, sizeof(neighbours));
 	neighboursCount = 0;
 
 	// Initialize radio communication for lookup
 	mac_csma_init(channel, transmission_power);
+
+	uint8_t pkg = 0;
+	send(ADDR_BROADCAST, &pkg, 1);
+}
+
+void lookup_neighbours() {
 
 	// Procedure:
 	// 1. Each node broadcasts a HELLO-message
@@ -159,7 +167,27 @@ void lookup_neighbours(uint32_t channel, uint32_t transmission_power) {
 void print_neighbours() {
 	int i;
 	for (i = 0; i < neighboursCount; i++) {
-		MESSAGE("NGB;%04x;\n", neighbours[i]);
+		struct node my_node = node_from_uid(neighbours[i]);
+
+		if (my_node.num != 0) {
+        	char *node_str;
+
+	        switch (my_node.type) {
+	        case M3:
+	            node_str = "m3";
+	            break;
+	        case A8:
+	            node_str = "a8";
+	            break;
+	        default:
+	            node_str = "invalid";
+	            break;
+        	}
+        	
+        	MESSAGE("NGB;%04x;%s-%u;\n", neighbours[i], node_str, my_node.num);
+	    } else {
+	        MESSAGE("NGB;%04x;\n", neighbours[i]);
+	    }
 	}
 }
 
@@ -223,6 +251,8 @@ void network_csma_data_received(uint16_t src_addr, const uint8_t *data,
 	uint8_t type = data[0];
 
 	//printf("Message received!\n");
+	
+	MESSAGE("INCOMING;%u;\n", type);
 
 	switch (type) {
 		case (MSG_HELLO):

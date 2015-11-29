@@ -6,7 +6,7 @@
 #include "printf.h"
 #include "iotlab_uid.h"
 
-void lookup_neighbours(uint32_t channel, uint32_t transmission_power);
+void lookup_neighbours();
 
 void print_neighbours();
 
@@ -34,6 +34,8 @@ uint16_t* get_neighbours();
  * @return       [description]
  */
 uint16_t uuid_of_neighbour(unsigned int index);
+
+void reset_neighbours(uint32_t channel, uint32_t transmission_power);
 
 /**
  * Send a package to a peer

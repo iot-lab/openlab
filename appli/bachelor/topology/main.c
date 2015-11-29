@@ -59,7 +59,7 @@ static void switch_to_gossiping()
 static void begin_lookup()
 {
     //printf("Beginning lookup!\n");
-    lookup_neighbours(15, PHY_POWER_0dBm);
+    lookup_neighbours();
 }
 
 static void handle_cmd(handler_arg_t arg)
@@ -98,6 +98,7 @@ static void handle_cmd(handler_arg_t arg)
 int main()
 {
     hardware_init();
+    reset_neighbours(15, PHY_POWER_5dBm);
     platform_run();
 
     return 0;

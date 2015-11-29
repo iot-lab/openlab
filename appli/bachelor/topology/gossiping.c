@@ -53,7 +53,8 @@ static unsigned int pickPeer(uint32_t numberOfPeers) {
 static void handle_timer(handler_arg_t arg)
 {
     // The thread is now active thus execute the active_thread method
-    active_thread();
+    //active_thread();
+    event_post(EVENT_QUEUE_APPLI, active_thread, NULL);
 }
 
 /**
@@ -117,9 +118,11 @@ void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
  * This is issued every dt seconds and makes a data dissemination
  * to one randomly chosen peer.
  */
-void active_thread() {
+void active_thread(handler_arg_t arg) {
 	// if the thread has no neighbpurs, we cannot pick one...
-	if (number_of_neighbours() == 0) {
+	// additionally, if our cache value is 0, we are not infected
+	// thus we do not send to reduce load on the network
+	if (number_of_neighbours() == 0 || cache.value == 0) {
 		return;
 	}
 	// p <- RandomPeer()
