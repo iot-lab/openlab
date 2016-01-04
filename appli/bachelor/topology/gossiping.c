@@ -53,7 +53,6 @@ static unsigned int pickPeer(uint32_t numberOfPeers) {
 static void handle_timer(handler_arg_t arg)
 {
     // The thread is now active thus execute the active_thread method
-    //active_thread();
     event_post(EVENT_QUEUE_APPLI, active_thread, NULL);
 }
 
@@ -78,6 +77,9 @@ void start_gossiping() {
 	cache.value = 0;
 	cache.sender = me;
 	cache.source = me;
+
+	// Delay a random interval to reduce nodes being active at the same time
+	soft_timer_delay_ms(random_rand32() % 500);
 
 	// The gossip algorithm states, that a node issues a gossip at a periodic interval
     // that is shared across all nodes thus we are initializing a timer here
@@ -140,9 +142,6 @@ void active_thread(handler_arg_t arg) {
 
 	MESSAGE("GOSSIP;%04x;%u;\n", uuid_of_neighbour(id), cache.value);
 	send_cache(uuid_of_neighbour(id), MSG_PUSH, &cache);
-
-	// wait for receive
-	//block_node_for_response(id);
 }
 
 void update(uint16_t sender, gossip_message *received_message) {
@@ -176,7 +175,6 @@ void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
 
 void gossip_csma_data_received(uint16_t src_addr, const uint8_t *data,
 				     uint8_t length, int8_t rssi, uint8_t lqi) {
-	//uint8_t *p = (uint8_t *)data;
 	if (length == sizeof(gossip_message)) {
 		passive_thread(src_addr, data, length);
 	}
