@@ -16,36 +16,6 @@
 
 static soft_timer_t alarm[1];
 
-//uint8_t state = 0;
-
-//char cache[CACHE_SIZE];
-
-struct _cache
-{
-	// The transferred value
-	uint32_t value;						// 4 bytes
-	// This will store the peer
-	// that has sent the value to this node
-	uint16_t sender;						// 2 bytes
-	// This is the issuer of this value
-	uint16_t source;						// 2 bytes
-} __attribute__ ((packed));
-
-typedef struct _cache data_cache;
-
-struct _gossip_message
-{
-	uint8_t type;
-	uint32_t value;
-	uint16_t sender;
-	uint16_t source;
-} __attribute__ ((packed));
-
-typedef struct _gossip_message gossip_message;
-
-data_cache cache;
-//data_state state = { 0, 0, 0 };
-
 static unsigned int pickPeer(uint32_t numberOfPeers) {
 	return random_rand32() % numberOfPeers;
 }
@@ -73,10 +43,8 @@ static void handle_timer(handler_arg_t arg)
  */
 void start_gossiping() {
 	uint16_t me = iotlab_uid();
-	// Prefill cache
-	cache.value = 0;
-	cache.sender = me;
-	cache.source = me;
+
+	init_cache(me);
 
 	// Delay a random interval to reduce nodes being active at the same time
 	soft_timer_delay_ms(random_rand32() % 500);
@@ -88,7 +56,7 @@ void start_gossiping() {
     // Initialize the active thread timer
     soft_timer_start(alarm, soft_timer_s_to_ticks(GOSSIP_INTERVAL), 1);
 
-	MESSAGE("INIT;%d;%d;\n", sizeof(data_cache), sizeof(gossip_message));
+	MESSAGE("INIT;%d;%d;\n", cache_memory_footprint(), sizeof(gossip_message));
 }
 
 /**
@@ -96,23 +64,14 @@ void start_gossiping() {
  * @param val [description]
  */
 void inject_value(uint32_t val) {
-	cache.value = val;
-	cache.sender = iotlab_uid();
-	cache.source = iotlab_uid();
+	uint16_t me = iotlab_uid();
+	//cache.value = val;
+	//cache.sender = iotlab_uid();
+	//cache.source = iotlab_uid();
+	set_cache(&val, sizeof(val), me, me);
 
 	MESSAGE("INJECT;%u;\n", val);
 	
-}
-
-void send_cache(uint16_t addr, uint8_t type, data_cache *cp) {
-	static gossip_message msg;
-	msg.type = type;
-
-	msg.value = cp->value;
-	msg.sender = iotlab_uid();
-	msg.source = cp->source;
-
-	send_package_uuid(addr, &msg, sizeof(gossip_message));
 }
 
 /**
@@ -124,7 +83,7 @@ void active_thread(handler_arg_t arg) {
 	// if the thread has no neighbpurs, we cannot pick one...
 	// additionally, if our cache value is 0, we are not infected
 	// thus we do not send to reduce load on the network
-	if (number_of_neighbours() == 0 || cache.value == 0) {
+	if (number_of_neighbours() == 0 || cache_empty()) {
 		return;
 	}
 	// p <- RandomPeer()
@@ -140,17 +99,26 @@ void active_thread(handler_arg_t arg) {
 	// therefore translate begin end into pointer and length
 	//send_package(id, cache + sigma.begin, sigma.end - sigma.begin + 1);
 
-	MESSAGE("GOSSIP;%04x;%u;\n", uuid_of_neighbour(id), cache.value);
-	send_cache(uuid_of_neighbour(id), MSG_PUSH, &cache);
+	data_cache* cache = get_cache();
+
+	MESSAGE("GOSSIP;%04x;%u;\n", uuid_of_neighbour(id), cache->value);
+	send_cache(uuid_of_neighbour(id), iotlab_uid(), MSG_PUSH, cache);
 }
 
 void update(uint16_t sender, gossip_message *received_message) {
-	if (received_message->value > cache.value) {
+	uint32_t* cache_value = get_cache_value();
+	if (received_message->value > *cache_value) {
 		// We received a new maximum, so refresh your cache!
-		cache.value = received_message->value;
-		cache.sender = sender;
-		cache.source = received_message->source;
-		MESSAGE("NEW-CACHE;%04x;%u;\n", sender, cache.value);
+		//cache.value = received_message->value;
+		//cache.sender = sender;
+		//cache.source = received_message->source;
+		set_cache(&received_message->value,
+					sizeof(received_message->value),
+					sender,
+					received_message->source
+				);
+
+		MESSAGE("NEW-CACHE;%04x;%u;\n", sender, *cache_value);
 	}
 }
 
@@ -167,7 +135,7 @@ void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
 
 	// On PUSH-Message answer with PULL - Message
 	if (received_message.type == MSG_PUSH) {
-		send_cache(src_addr, MSG_PULL, &cache);
+		send_cache(src_addr, iotlab_uid(), MSG_PULL, get_cache());
 	}
 
 	update(src_addr, &received_message);

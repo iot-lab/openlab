@@ -32,6 +32,9 @@ static void print_usage()
     printf("Type command\n");
     printf("\th:\tprint this help\n");
     printf("\tt:\tinitialize neighbourhood HELLO\n");
+    printf("\tl:\tlist known neighbours\n");
+    printf("\tg:\tswitch to gossiping\n");
+    printf("\ti<number>:\tinject number\n");
 }
 
 static void hardware_init()
