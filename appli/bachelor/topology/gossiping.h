@@ -15,7 +15,8 @@
 #define ACTIVE_THREAD 1
 #define PASSIVE_THREAD 0
 
-#define GOSSIP_INTERVAL 5
+// The intervall of the active thread in ms
+#define GOSSIP_INTERVAL 5000
 
 /**
  * Data Structures

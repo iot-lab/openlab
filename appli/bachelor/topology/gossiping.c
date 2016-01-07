@@ -12,8 +12,6 @@
 #include "random.h"
 #include <string.h>
 
-#define CACHE_SIZE 512
-
 static soft_timer_t alarm[1];
 
 static unsigned int pickPeer(uint32_t numberOfPeers) {
@@ -31,11 +29,28 @@ static void handle_timer(handler_arg_t arg)
  * It ensures that begin <= end
  * @return [description]
  */
-/*cache_section pick_cache_selection() {
-	cache_section a = {0, 0};
+cache_segment prepareMsg() {
+	static uint8_t segment_id = 0;
+	cache_segment seg;
+	uint8_t* cache = get_cache_value();
 
-	return a;
-}*/
+	
+	uint8_t start = (segment_id) * 8;
+	uint8_t len = 8;
+
+	seg.start = start;
+	seg.len = len;
+	seg.value = cache + start;
+
+	// The cache is 64 bytes large
+	// a message can hold 4 data bytes.
+	// We want to achieve a data alignment of uint32_t so 4 bytes
+	// that is to say we can transfer one of these values per package.
+	// in 64 bytes we can store 64 / 4 = 16 different byte octets
+	segment_id = (segment_id + 1) % (CACHE_SIZE/MAX_SEGMENT_SIZE);
+
+	return seg;
+}
 
 /**
  * Initialize this node for gossiping
@@ -54,7 +69,7 @@ void start_gossiping() {
     soft_timer_set_handler(alarm, handle_timer, (handler_arg_t) 0);
 
     // Initialize the active thread timer
-    soft_timer_start(alarm, soft_timer_s_to_ticks(GOSSIP_INTERVAL), 1);
+    soft_timer_start(alarm, soft_timer_ms_to_ticks(GOSSIP_INTERVAL), 1);
 
 	MESSAGE("INIT;%d;%d;\n", cache_memory_footprint(), sizeof(gossip_message));
 }
@@ -64,11 +79,22 @@ void start_gossiping() {
  * @param val [description]
  */
 void inject_value(uint32_t val) {
+	static int segment_id = 0;
 	uint16_t me = iotlab_uid();
-	//cache.value = val;
-	//cache.sender = iotlab_uid();
-	//cache.source = iotlab_uid();
-	set_cache(&val, sizeof(val), me, me);
+
+	uint8_t start = (segment_id) * 8;
+	uint8_t len = 8;
+
+	cache_segment seg;
+
+	seg.start = start;
+	seg.len = len;
+	seg.value = (uint8_t*) &val;
+
+	set_cache_segment(&seg, me, me);
+
+	//set_cache(&val, sizeof(val), me, me);
+	segment_id = (segment_id + 1) % (CACHE_SIZE/MAX_SEGMENT_SIZE);
 
 	MESSAGE("INJECT;%u;\n", val);
 	
@@ -90,35 +116,58 @@ void active_thread(handler_arg_t arg) {
 	unsigned int id = pickPeer(number_of_neighbours());
 
 	// sigma <- PrepareMsg()
-	// This step is unneccessary for this implementation
-	// as there is always just one cache object that can be
-	// disseminated
-	// cache_section sigma = pick_cache_selection();
+	// Pick a segment of the cache that is to be disseminated
+	// in our case the selection is random, but could be of circular order
+	cache_segment sigma = prepareMsg();
 
 	// send sigma to id
 	// therefore translate begin end into pointer and length
 	//send_package(id, cache + sigma.begin, sigma.end - sigma.begin + 1);
 
-	data_cache* cache = get_cache();
+	//data_cache* cache = get_cache();
+	uint32_t part;
 
-	MESSAGE("GOSSIP;%04x;%u;\n", uuid_of_neighbour(id), cache->value);
-	send_cache(uuid_of_neighbour(id), iotlab_uid(), MSG_PUSH, cache);
+	memcpy(&part, sigma.value, 4);
+
+	if (send_cache_segment(uuid_of_neighbour(id), MSG_PUSH, &sigma) < 0) {
+		ERROR("TOO-LARGE-SEGMENT");
+	}
+
+	MESSAGE("GOSSIP;%04x;%u;\n", uuid_of_neighbour(id), part);
+	
 }
 
-void update(uint16_t sender, gossip_message *received_message) {
-	uint32_t* cache_value = get_cache_value();
-	if (received_message->value > *cache_value) {
+void update(uint16_t sender, gossip_message *received_message, cache_segment* cseg) {
+	
+	int i = 0;
+	uint8_t updateFlag = 0;
+
+	uint8_t* cache_value = get_cache_value();
+	cache_value = cache_value + cseg->start;
+
+	for (i = 0; i < cseg->len; i++) {
+		if (cseg->value[i] != cache_value[i]) {
+			updateFlag = 1;
+		}
+	}
+	if (updateFlag) {
 		// We received a new maximum, so refresh your cache!
 		//cache.value = received_message->value;
 		//cache.sender = sender;
 		//cache.source = received_message->source;
-		set_cache(&received_message->value,
+		/*set_cache(&received_message->value,
 					sizeof(received_message->value),
 					sender,
 					received_message->source
-				);
+				);*/
 
-		MESSAGE("NEW-CACHE;%04x;%u;\n", sender, *cache_value);
+		set_cache_segment(cseg, sender, received_message->source);
+
+		uint32_t part;
+
+		memcpy(&part, cseg->value, 4);
+
+		MESSAGE("NEW-CACHE;%04x;%u;\n", sender, part);
 	}
 }
 
@@ -129,20 +178,29 @@ void update(uint16_t sender, gossip_message *received_message) {
 void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
 	gossip_message received_message;
 
+	cache_segment cseg;
+
 	memcpy(&received_message, data, length);
 
-	MESSAGE("RECV;%04x;%u;%u;%u;\n", src_addr, length, received_message.type, received_message.value);
+	MESSAGE("RECV;%04x;%u;%u;%u;\n", src_addr, length, received_message.type, received_message.value[0]);
+
+	
+	cseg.start = received_message.value[0];
+	cseg.len = received_message.value[1];
+	cseg.value = received_message.value + 2;
 
 	// On PUSH-Message answer with PULL - Message
 	if (received_message.type == MSG_PUSH) {
-		send_cache(src_addr, iotlab_uid(), MSG_PULL, get_cache());
+		//send_cache(src_addr, MSG_PULL, get_cache());
+		send_cache_segment(src_addr, MSG_PULL, &cseg);
 	}
 
-	update(src_addr, &received_message);
+	update(src_addr, &received_message, &cseg);
 }
 
 void gossip_csma_data_received(uint16_t src_addr, const uint8_t *data,
 				     uint8_t length, int8_t rssi, uint8_t lqi) {
+	MESSAGE("RECV;%u\n", length);
 	if (length == sizeof(gossip_message)) {
 		passive_thread(src_addr, data, length);
 	}
