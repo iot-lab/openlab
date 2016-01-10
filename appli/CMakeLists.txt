@@ -36,3 +36,6 @@ add_subdirectory(sensbio)
 
 # Education Practical Works examples
 add_subdirectory(education)
+
+# Bachelor project
+add_subdirectory(bachelor)
