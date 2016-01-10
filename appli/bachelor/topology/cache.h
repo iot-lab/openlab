@@ -5,7 +5,7 @@
 #include <stddef.h>
 
 #define MAX_SEGMENT_SIZE 4
-#define CACHE_SIZE 64
+#define CACHE_SIZE 4
 
 /**
  * Data Structures

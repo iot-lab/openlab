@@ -14,6 +14,8 @@
 
 static soft_timer_t alarm[1];
 
+uint32_t roundCounter;
+
 static unsigned int pickPeer(uint32_t numberOfPeers) {
 	return random_rand32() % numberOfPeers;
 }
@@ -35,8 +37,8 @@ cache_segment prepareMsg() {
 	uint8_t* cache = get_cache_value();
 
 	
-	uint8_t start = (segment_id) * 8;
-	uint8_t len = 8;
+	uint8_t start = (segment_id) * 4;
+	uint8_t len = 4;
 
 	seg.start = start;
 	seg.len = len;
@@ -58,6 +60,8 @@ cache_segment prepareMsg() {
  */
 void start_gossiping() {
 	uint16_t me = iotlab_uid();
+
+	roundCounter = 0;
 
 	init_cache(me);
 
@@ -82,8 +86,8 @@ void inject_value(uint32_t val) {
 	static int segment_id = 0;
 	uint16_t me = iotlab_uid();
 
-	uint8_t start = (segment_id) * 8;
-	uint8_t len = 8;
+	uint8_t start = (segment_id) * 4;
+	uint8_t len = 4;
 
 	cache_segment seg;
 
@@ -106,6 +110,7 @@ void inject_value(uint32_t val) {
  * to one randomly chosen peer.
  */
 void active_thread(handler_arg_t arg) {
+	roundCounter++;
 	// if the thread has no neighbpurs, we cannot pick one...
 	// additionally, if our cache value is 0, we are not infected
 	// thus we do not send to reduce load on the network
@@ -133,24 +138,30 @@ void active_thread(handler_arg_t arg) {
 		ERROR("TOO-LARGE-SEGMENT");
 	}
 
-	MESSAGE("GOSSIP;%04x;%u;\n", uuid_of_neighbour(id), part);
+	MESSAGE("GOSSIP;%u;%04x;%u;\n", roundCounter, uuid_of_neighbour(id), part);
 	
 }
 
 void update(uint16_t sender, gossip_message *received_message, cache_segment* cseg) {
 	
-	int i = 0;
-	uint8_t updateFlag = 0;
+	//int i = 0;
+	//uint8_t updateFlag = 0;
 
 	uint8_t* cache_value = get_cache_value();
 	cache_value = cache_value + cseg->start;
 
-	for (i = 0; i < cseg->len; i++) {
+	uint32_t myValue;
+	uint32_t receivedValue;
+
+	memcpy(&myValue, cache_value, sizeof(uint32_t));
+	memcpy(&receivedValue, cseg->value, sizeof(uint32_t));
+
+	/*for (i = 0; i < cseg->len; i++) {
 		if (cseg->value[i] != cache_value[i]) {
 			updateFlag = 1;
 		}
-	}
-	if (updateFlag) {
+	}*/
+	if (/*updateFlag*/myValue < receivedValue) {
 		// We received a new maximum, so refresh your cache!
 		//cache.value = received_message->value;
 		//cache.sender = sender;
@@ -163,11 +174,11 @@ void update(uint16_t sender, gossip_message *received_message, cache_segment* cs
 
 		set_cache_segment(cseg, sender, received_message->source);
 
-		uint32_t part;
+		/*uint32_t part;
 
-		memcpy(&part, cseg->value, 4);
+		memcpy(&part, cseg->value, 4);*/
 
-		MESSAGE("NEW-CACHE;%04x;%u;\n", sender, part);
+		MESSAGE("NEW-CACHE;%04x;%u;\n", sender, /*part*/ receivedValue);
 	}
 }
 
@@ -182,7 +193,7 @@ void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
 
 	memcpy(&received_message, data, length);
 
-	MESSAGE("RECV;%04x;%u;%u;%u;\n", src_addr, length, received_message.type, received_message.value[0]);
+	MESSAGE("RECV;%04x;%u;%u;%u;\n", src_addr, length, received_message.type, received_message.value[2]);
 
 	
 	cseg.start = received_message.value[0];
@@ -200,7 +211,7 @@ void passive_thread(uint16_t src_addr, const uint8_t *data, uint8_t length) {
 
 void gossip_csma_data_received(uint16_t src_addr, const uint8_t *data,
 				     uint8_t length, int8_t rssi, uint8_t lqi) {
-	MESSAGE("RECV;%u\n", length);
+	//MESSAGE("RECV;%u\n", length);
 	if (length == sizeof(gossip_message)) {
 		passive_thread(src_addr, data, length);
 	}
