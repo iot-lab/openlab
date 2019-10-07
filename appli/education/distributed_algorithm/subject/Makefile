@@ -1,4 +1,4 @@
-NAME = TP-DistribAlg-$(shell date +%Y)
+NAME = TP-DistribAlg
 PDF = $(patsubst %,%.pdf,$(NAME))
 PDFFLAGS = -halt-on-error -file-line-error
 all: $(PDF)
