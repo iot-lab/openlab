@@ -18,13 +18,15 @@ run_ssh()
 create_distributed_algorithm_link()
 {
     local login=$1
-    local cmd1='git clone https://github.com/iot-lab/iot-lab.git'
-    local cmd2='cd iot-lab; make setup-openlab'
-    local cmd3='ln -nfsv iot-lab/parts/openlab/appli/education/distributed_algorithm/ .'
+    local cmd1='rm -rf iot-lab'
+    local cmd2='git clone https://github.com/iot-lab/iot-lab.git'
+    local cmd3='cd iot-lab; make setup-openlab'
+    local cmd4='ln -nfsv iot-lab/parts/openlab/appli/education/distributed_algorithm/ .'
 
     run_ssh ${login} "${cmd1}"
     run_ssh ${login} "${cmd2}"
     run_ssh ${login} "${cmd3}"
+    run_ssh ${login} "${cmd4}"
 }
 
 
