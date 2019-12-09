@@ -29,7 +29,7 @@
 #include "printf.h"
 #include "debug.h"
 
-const openlab_uid_t const *uid = (const openlab_uid_t *const) UNIQUE_ID_BASE_ADDRESS;
+const openlab_uid_t *uid = (const openlab_uid_t *const) UNIQUE_ID_BASE_ADDRESS;
 
 void uid_print()
 {

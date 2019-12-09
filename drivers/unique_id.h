@@ -57,7 +57,7 @@ typedef union
 /**
  * Pointer to the Unique ID.
  */
-extern const openlab_uid_t const *uid;
+extern const openlab_uid_t *uid;
 
 /**
  * Return a 16b uid processed from uid
