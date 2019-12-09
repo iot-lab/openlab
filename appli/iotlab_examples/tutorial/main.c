@@ -94,7 +94,8 @@ static void print_cn_time()
         return;
     }
 
-    struct tm *local_time = gmtime((time_t *)&time.tv_sec);
+    time_t timestamp = (time_t)time.tv_sec;
+    struct tm *local_time = gmtime(&timestamp);
     char date_str[64];
     strftime(date_str, (sizeof date_str), "%Y-%m-%d %H:%M:%S", local_time);
 

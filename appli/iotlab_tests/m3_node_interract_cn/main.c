@@ -25,7 +25,8 @@ static void get_time()
     else
         printf("Control node time: %u.%06u\n", time.tv_sec, time.tv_usec);
 
-    struct tm *local_time = gmtime((time_t *)&time.tv_sec);
+    time_t timestamp = (time_t)time.tv_sec;
+    struct tm *local_time = gmtime(&timestamp);
     char time_str[64];
     strftime(time_str, (sizeof time_str), "%Y-%m-%d %H:%M:%S", local_time);
     printf("Date: UTC %s.%06u\n", time_str, time.tv_usec);
