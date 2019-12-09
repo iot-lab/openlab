@@ -3,7 +3,7 @@
  */
 #include "iotlab_uid_num_hashtable.h"
 
-const struct node_entry const nodes_uid_dict[] = {
+const struct node_entry nodes_uid_dict[] = {
     { 0x0561, M3 << 24 | 136 },
     { 0x0562, M3 << 24 | 37 },
     { 0x0660, M3 << 24 | 104 },
