@@ -40,7 +40,7 @@
  * data to the android device.
  */
 /*                              0x53 0x4E 0x49 0x46                          */
-static const uint8_t magic[] = { 'S', 'N', 'I', 'F'};
+//static const uint8_t magic[] = { 'S', 'N', 'I', 'F'};
 static void sniff_rx(phy_status_t status);
 
 void init_sniffer(uint8_t channel)
