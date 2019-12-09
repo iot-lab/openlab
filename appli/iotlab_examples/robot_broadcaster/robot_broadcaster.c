@@ -93,12 +93,12 @@ static void imu_init()
 
 static void handle_ev()
 {
-    int16_t rawacc[3];
-    int16_t rawgyr[3];
+    int16_t rawacc[3] = { 0 };
+    int16_t rawgyr[3] = { 0 };
     //int16_t rawmag[3];
     int16_t i;
-    float acc[3];
-    float gyr[3];
+    float acc[3] = { 0 };
+    float gyr[3] = { 0 };
     //float mag[3];
     static float pitch;
     int pitch_deg;
