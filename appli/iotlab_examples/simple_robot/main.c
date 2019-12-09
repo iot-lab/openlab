@@ -76,13 +76,13 @@ int main()
 
 static void handle_ev(handler_arg_t arg)
 {
-  int16_t rawacc[3];
-  int16_t rawmag[3];
-  int16_t rawgyr[3];
+  int16_t rawacc[3] = {0};
+  int16_t rawmag[3] = {0};;
+  int16_t rawgyr[3] = {0};;
   int16_t i;
-  float acc[3];
-  float gyr[3];
-  float mag[3];
+  float acc[3] = {0};;
+  float gyr[3] = {0};;
+  float mag[3] = {0};;
   static float pitch;
   int pitch_deg;
   static float biais;
