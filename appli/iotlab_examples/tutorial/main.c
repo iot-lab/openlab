@@ -36,8 +36,6 @@ static soft_timer_t tx_timer;
 #define BLINK_PERIOD soft_timer_s_to_ticks(1)
 
 /* Global variables */
-// print help every second
-volatile int8_t print_help  = 1;
 volatile int8_t leds_active = 1;
 
 
@@ -154,8 +152,6 @@ static void send_big_packet()
 void mac_csma_data_received(uint16_t src_addr,
         const uint8_t *data, uint8_t length, int8_t rssi, uint8_t lqi)
 {
-    // disable help message after receiving one packet
-    print_help = 0;
     struct node src_node = node_from_uid(src_addr);
 
     printf("\nradio > ");
@@ -205,8 +201,6 @@ static void print_usage()
     printf("\ts:\tsend a radio packet\n");
     printf("\tb:\tsend a big radio packet\n");
     printf("\te:\ttoggle leds blinking\n");
-    if (print_help)
-        printf("\n Type Enter to stop printing this help\n");
 }
 
 
@@ -297,8 +291,6 @@ int main()
 /* Reception of a char on UART and store it in 'cmd' */
 static void char_rx(handler_arg_t arg, uint8_t c)
 {
-    // disable help message after receiving char
-    print_help = 0;
     event_post_from_isr(EVENT_QUEUE_APPLI, handle_cmd,
             (handler_arg_t)(uint32_t) c);
 }
@@ -308,10 +300,4 @@ static void alarm(handler_arg_t arg)
 {
     if (leds_active)
         leds_toggle(LED_0 | LED_1 | LED_2);
-
-    /* Print help before getting first real \n */
-    if (print_help) {
-        event_post(EVENT_QUEUE_APPLI, handle_cmd, (handler_arg_t) 'h');
-        event_post(EVENT_QUEUE_APPLI, handle_cmd, (handler_arg_t) '\n');
-    }
 }
