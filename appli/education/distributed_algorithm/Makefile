@@ -17,4 +17,4 @@ $(BUILD_M3)/bin/$(FIRMWARE): | $(BUILD_M3)
 
 $(BUILD_M3):
 	mkdir -p $@
-	cd $@; cmake -C .. -DPLATFORM=iotlab-m3
+	cd -P $@; cmake .. -DPLATFORM=iotlab-m3
